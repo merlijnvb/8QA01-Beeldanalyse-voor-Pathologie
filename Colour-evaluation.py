@@ -32,6 +32,8 @@ mask_white = cv2.inRange(leasie, white_lower_range, white_higher_range)
 mask_red = cv2.inRange(leasie, red_higher_range, red_higher_range)
 mask_blue_grey = cv2.inRange(leasie, blue_grey_lower_range, blue_grey_higher_range)
 mask_black = cv2.inRange(leasie, black_lower_range, black_higher_range)
+mask_negative_space = cv2.inRange(leasie, (0, 0, 0), (0, 0, 0))
+final_mask_black =  mask_black - mask_negative_space
 
 # show images
 
@@ -42,7 +44,7 @@ fig.suptitle('Masks of colours', fontsize=14)
 ax[0, 0].imshow(mask_light_brown, cmap="gray")
 ax[0, 1].imshow(mask_dark_brown, cmap="gray")
 ax[1, 0].imshow(mask_white, cmap="gray")
-ax[1, 1].imshow(mask_black, cmap="gray")
+ax[1, 1].imshow(final_mask_black, cmap="gray")
 ax[2, 0].imshow(mask_red, cmap="gray")
 ax[2, 1].imshow(mask_blue_grey, cmap="gray")
 
@@ -56,13 +58,12 @@ ax[2, 1].set_title("blue grey")
 
 # area colours
 pix_melanoma = np.sum(leasie > 0)
-pix_negative = np.sum(leasie == 255)
 pix_light_brown = np.sum(mask_light_brown == 255)
 pix_dark_brown = np.sum(mask_dark_brown == 255)
 pix_white = np.sum(mask_white == 255)
 pix_red = np.sum(mask_red == 255)
 pix_blue_gray = np.sum(mask_blue_grey == 255)
-pix_black = np.sum(mask_black == 255) - pix_negative
+pix_black = np.sum(final_mask_black == 255)
 
 #counting system
 for i in [pix_dark_brown, pix_light_brown, pix_white, pix_red, pix_blue_gray, pix_black]:
