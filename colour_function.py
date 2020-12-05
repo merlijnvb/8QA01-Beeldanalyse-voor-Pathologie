@@ -1,48 +1,40 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 def colour_evaluation(lesion, mask):
-    color_score = 0
+    mask_inv = 255 - mask
+    colour_score = 0
+
+    colours = {'light brown low':(255*0.588, 255*0.2, 255*0),
+              'light brown high':(255*0.94, 255*0.588, 255*392),
+              'dark brown low':(255*0.243, 255*0, 255*0),
+              'dark borwn high':(255*56, 255*0.392, 255*392),
+              'white low':(255*0.8, 255*0.8, 255*0.8),
+              'white high':(255, 255, 255),
+              'red low':(255*0.588, 255*0, 255*0),
+              'red high':(255, 255*0.19, 255*0.19),
+              'blue gray low':(255*0, 255*0.392, 255*0.490),
+              'blue gray high':(255*0.588, 255*0.588, 255*0.588),
+              'black low':(255*0, 255*0, 255*0),
+              'black high':(255*0.243, 255*0.243, 255*0.243)}
+
+    for i in range(0,len(colours),2):
+        mask_colour = cv2.inRange(lesion, colours.get(list(colours.keys())[i]), colours.get(list(colours.keys())[i+1]))
     
-    # intervals
-    light_brown_higher_range = (249, 193, 160)
-    light_brown_lower_range = (55, 24, 22)
-    
-    dark_brown_higher_range = (55, 24, 22)
-    dark_brown_lower_range = (36, 15, 15)
-    
-    white_higher_range = (255, 255, 255)
-    white_lower_range = (217, 217, 217)
-    
-    red_higher_range = (255, 77, 77)
-    red_lower_range = (154, 0, 0)
-    
-    blue_grey_higher_range = (144, 168, 180)
-    blue_grey_lower_range = (69, 91, 102)
-    
-    black_higher_range = (38, 38, 38)
-    black_lower_range = (0, 0, 0)
-    
-    # mask of colour
-    mask_light_brown = cv2.inRange(lesion, light_brown_lower_range, light_brown_higher_range)
-    mask_dark_brown = cv2.inRange(lesion, dark_brown_lower_range, dark_brown_higher_range)
-    mask_white = cv2.inRange(lesion, white_lower_range, white_higher_range)
-    mask_red = cv2.inRange(lesion, red_lower_range, red_higher_range)
-    mask_blue_grey = cv2.inRange(lesion, blue_grey_lower_range, blue_grey_higher_range)
-    mask_black = cv2.inRange(lesion, black_lower_range, black_higher_range)
-    
-    # area colours
-    pix_melanoma = np.sum(mask == 255)
-    pix_light_brown = np.sum(mask_light_brown == 255)
-    pix_dark_brown = np.sum(mask_dark_brown == 255)
-    pix_white = np.sum(mask_white == 255)
-    pix_red = np.sum(mask_red == 255)
-    pix_blue_gray = np.sum(mask_blue_grey == 255)
-    pix_black = np.sum(mask_black == 255) - ((lesion.shape[0] * lesion.shape[1]) - pix_melanoma)
-    
-    #counting system
-    for i in [pix_dark_brown, pix_light_brown, pix_white, pix_red, pix_blue_gray, pix_black]:
-        if (i/pix_melanoma) >= 0.05:
-            color_score += 1
-            
-    return (color_score,mask_light_brown,mask_dark_brown,mask_white,mask_red,mask_blue_grey,mask_black)
+        if list(colours.keys())[i] == list(colours.keys())[-2] and list(colours.keys())[i+1] == list(colours.keys())[-1]:
+            mask_colour = mask_colour - mask_inv
+        
+        result = cv2.bitwise_and(lesion, lesion, mask=mask_colour)
+        
+        if (np.sum(mask_colour == 255) / np.sum(mask == 255)) >= 0.05:    
+            colour_score += 1
+        
+        
+        fig, axs = plt.subplots(2)
+        fig.suptitle("{} <-> {}".format(list(colours.keys())[i],list(colours.keys())[i+1]))
+        axs[0].imshow(mask_colour, cmap="gray")
+        axs[1].imshow(result)
+        plt.show()
+        
+    return colour_score
