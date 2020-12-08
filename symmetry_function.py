@@ -50,9 +50,9 @@ def symmetry_evaluation(lesion, mask):
             
         resultaat_vertical = right - left_flipped
     
-    pix_melanoma = np.sum(lesion > 0)
-    pix_diff_vertical = np.sum(resultaat_vertical > 0)
-    pix_diff_horizontal = np.sum(resultaat_horizontal > 0)
+    pix_melanoma = np.sum(mask == 255)
+    pix_diff_vertical = np.sum(resultaat_vertical == 255)
+    pix_diff_horizontal = np.sum(resultaat_horizontal == 255)
     
     quotient_vertical = pix_diff_vertical / pix_melanoma
     quotient_horizontal = pix_diff_horizontal / pix_melanoma
