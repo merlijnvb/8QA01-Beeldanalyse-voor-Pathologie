@@ -2,12 +2,12 @@ import cv2
 import numpy as np
 import math
 
-def border_evaluation(mask):
+def border_evaluation(mask):   
     height, width = mask.shape[:2]
-    dim = (width-1, height-1)  
+    dim = (width-2, height-2)  
 
     resized = cv2.resize(mask, dim)
-    resized = cv2.copyMakeBorder(resized, 1, None, 1, None, 0, None, None)
+    resized = cv2.copyMakeBorder(resized, 1, 1, 1, 1, 0, None, None)
     border = mask - resized
     
     length_border = np.sum(border == 255)
