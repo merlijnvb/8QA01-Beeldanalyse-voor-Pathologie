@@ -7,55 +7,59 @@ import math
 import pandas as pd
 from tqdm import tqdm
 
-file = open("results.txt")
-file_read = file.readlines()
-file.close()
-
-value_data = []
-
-for lines in file_read[1:]:
-    lines = lines.rstrip()
-    lines = tuple(lines.split(","))
-    value_data.append(lines)
-
-list_borders = []
-list_areas = []
-list_symmetry_vertical = []
-list_symmetry_horizontal = []
-list_colour_scores = []
-list_diameters = []
-list_border_score = []
-list_symmetry_score = []
-list_diameter_score = []
-
-for tupl in value_data:
-    border = int(tupl[1])
-    area = int(tupl[2])
-    symmetry_vertical = int(tupl[3])
-    symmetry_horizontal = int(tupl[4])
-    colour_score = float(tupl[-1])
+def read_files():
+    csv = open("labels.csv")
+    csv_read = csv.readlines()[1:]
+    csv.close()
+    file = open("results.txt")
+    file_read = file.readlines()
+    file.close()
     
-    diameter = border / math.pi
+    control_group = []
+    value_data = []
     
-    border_score = (border**2) / (area*math.pi*4)
-    symmetry_score = symmetry_vertical / symmetry_horizontal
-    diameter_score = diameter / area
-    
-    list_border_score.append(border_score)
-    list_symmetry_score.append(symmetry_score)
-    list_diameter_score.append(diameter_score)
-    list_colour_scores.append(colour_score)
-    
-df = pd.DataFrame({"Asymmetry score":list_symmetry_score,
-                   "Border score":list_border_score,
-                   "Colour score":list_colour_scores,
-                   "Diameter score":list_diameter_score})
+    for lines in csv_read[1:]:
+        lines = tuple(lines.rstrip().split(","))
+        control_group.append(lines[1])
 
-pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde')
+    for lines in file_read[1:]:
+        lines = lines.rstrip()
+        lines = tuple(lines.split(","))
+        value_data.append(lines)
+        
+    return value_data, control_group
 
-""" 
-                SCORE EVALUATION
-"""
+def extract_info():
+    value_data = read_files()[0]
+    
+    list_colour_scores = []
+    list_border_score = []
+    list_symmetry_score = []
+    list_diameter_score = []
+    
+    for tupl in value_data:
+        border = int(tupl[1])
+        area = int(tupl[2])
+        symmetry_vertical = int(tupl[3])
+        symmetry_horizontal = int(tupl[4])
+        colour_score = float(tupl[-1])
+        
+        diameter = border / math.pi
+        
+        border_score = (border**2) / (area*math.pi*4)
+        symmetry_score = symmetry_vertical / symmetry_horizontal
+        diameter_score = diameter / area
+        
+        list_border_score.append(border_score)
+        list_symmetry_score.append(symmetry_score)
+        list_diameter_score.append(diameter_score)
+        list_colour_scores.append(colour_score)
+        
+    df = pd.DataFrame({"Asymmetry score":list_symmetry_score,
+                        "Border score":list_border_score,
+                        "Colour score":list_colour_scores,
+                        "Diameter score":list_diameter_score})   
+    return df
 
 def print_accuracy(test_features,control_group,folds,types):
     from sklearn.model_selection import train_test_split
@@ -114,44 +118,70 @@ def print_accuracy(test_features,control_group,folds,types):
     test_sets = tuple(test_sets)
     
     return (training_sets,test_sets)
+
+def boolean_conv(array):
+    control_group = []
     
-types = ["Logistic regression","Decision Tree","Nearest Neighbor"," Linear Discriminant Analysis",
-         "Gaussian Naive Bayes","Support Vector Machine","Nearest Centroid"]
-
-features = ['Asymmetry score', 'Border score', 'Diameter score'] # add colour score here
-test_features = df[features]
-control_group = df['Colour score'] # colour score has to be a banary number => 0 = non melenoma ; 1 = melanoma ; 2 = keratosis
-
-iteration = []
-
-for i in tqdm(range(len(value_data))):
-    iteration.append(print_accuracy(test_features,control_group,i,types))
-
-data = []
-
-for i in range(2):  
-    for j in range(len(types)):
-        value = 0
-        for k in iteration:
-            value += k[i][j]
+    for txt in array:
+        if txt == "False":
+            control_group.append(0)
+        if txt == "True":
+            control_group.append(1)
             
-        value = value / len(iteration)
+    return control_group
+            
         
-        data.append(value)
 
-mean_train = []
-mean_test = []
-
-for train in data[:7]:
-    train = "{:0.2%}".format(train)
-    mean_train.append(train)
+def define_score():
+    import matplotlib.pyplot as plt
     
-for test in data[7:]:
-    test = "{:0.2%}".format(test)
-    mean_test.append(test)
-
-mean_table = pd.DataFrame({"Types of classification:":types,
-                    "Mean training:":mean_train,
-                    "Mean test:":mean_test})
-
-print(mean_table)
+    df = extract_info()
+    value_data, array = read_files()
+    
+    control_group = boolean_conv(array)
+    print(len(control_group))
+    
+    types = ["Logistic regression","Decision Tree","Nearest Neighbor"," Linear Discriminant Analysis",
+              "Gaussian Naive Bayes","Support Vector Machine","Nearest Centroid"]
+    
+    features = ['Asymmetry score', 'Border score', 'Diameter score','Colour score'] # add colour score here
+    test_features = df[features]
+    
+    iteration = []
+    
+    for i in tqdm(range(len(value_data))):
+        iteration.append(print_accuracy(test_features,control_group,i,types))
+    
+    data = []
+    
+    for i in range(2):  
+        for j in range(len(types)):
+            value = 0
+            for k in iteration:
+                value += k[i][j]
+                
+            value = value / len(iteration)
+            
+            data.append(value)
+    
+    mean_train = []
+    mean_test = []
+    
+    for train in data[:7]:
+        train = "{:0.2%}".format(train)
+        mean_train.append(train)
+        
+    for test in data[7:]:
+        test = "{:0.2%}".format(test)
+        mean_test.append(test)
+    
+    mean_table = pd.DataFrame({"Types of classification:":types,
+                        "Mean training:":mean_train,
+                        "Mean test:":mean_test})
+    print("\n")
+    print(mean_table)
+    pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde')
+    plt.savefig('results.png')
+    #print("\n",df)
+    
+define_score()
