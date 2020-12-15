@@ -57,7 +57,7 @@ pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde'
                 SCORE EVALUATION
 """
 
-def print_accuracy(x,y,folds,types):
+def print_accuracy(test_features,control_group,folds,types):
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import MinMaxScaler
     from sklearn.linear_model import LogisticRegression
@@ -68,7 +68,7 @@ def print_accuracy(x,y,folds,types):
     from sklearn.svm import SVC
     from sklearn.neighbors import NearestCentroid
     
-    x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=folds)
+    x_train, x_test, y_train, y_test = train_test_split(test_features, control_group, random_state=folds)
     
     scaler = MinMaxScaler()
     x_train = scaler.fit_transform(x_train)
@@ -118,22 +118,22 @@ def print_accuracy(x,y,folds,types):
 types = ["Logistic regression","Decision Tree","Nearest Neighbor"," Linear Discriminant Analysis",
          "Gaussian Naive Bayes","Support Vector Machine","Nearest Centroid"]
 
-feature_names_x = ['Asymmetry score', 'Border score', 'Diameter score'] # add colour score here
-x = df[feature_names_x]
-y = df['Colour score'] # colour score has to be a banary number => 0 = non melenoma ; 1 = melanoma ; 2 = keratosis
+features = ['Asymmetry score', 'Border score', 'Diameter score'] # add colour score here
+test_features = df[features]
+control_group = df['Colour score'] # colour score has to be a banary number => 0 = non melenoma ; 1 = melanoma ; 2 = keratosis
 
 iteration = []
 
 for i in tqdm(range(len(value_data))):
-    iteration.append(print_accuracy(x,y,i,types))
+    iteration.append(print_accuracy(test_features,control_group,i,types))
 
 data = []
 
-for g in range(2):  
-    for k in range(len(types)):
+for i in range(2):  
+    for j in range(len(types)):
         value = 0
-        for l in iteration:
-            value += l[g][k]
+        for k in iteration:
+            value += k[i][j]
             
         value = value / len(iteration)
         
