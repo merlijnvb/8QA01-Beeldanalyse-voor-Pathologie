@@ -28,28 +28,18 @@ list_border_score = []
 list_symmetry_score = []
 list_diameter_score = []
 
-lib = {}
-
 for tupl in value_data:
-    # print(tupl)
     border = int(tupl[1])
     area = int(tupl[2])
     symmetry_vertical = int(tupl[3])
     symmetry_horizontal = int(tupl[4])
     colour_score = float(tupl[-1])
-    # print(colour_score)
     
     diameter = border / math.pi
     
     border_score = (border**2) / (area*math.pi*4)
     symmetry_score = symmetry_vertical / symmetry_horizontal
     diameter_score = diameter / area
-
-    list_borders.append(border)
-    list_areas.append(area)
-    list_symmetry_vertical.append(symmetry_vertical)
-    list_symmetry_horizontal.append(symmetry_horizontal)
-    list_diameters.append(diameter)
     
     list_border_score.append(border_score)
     list_symmetry_score.append(symmetry_score)
@@ -62,8 +52,6 @@ df = pd.DataFrame({"Asymmetry score":list_symmetry_score,
                    "Diameter score":list_diameter_score})
 
 pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde')
-
-# print(df.describe())
 
 """ 
                 SCORE EVALUATION
@@ -139,50 +127,31 @@ iteration = []
 for i in tqdm(range(len(value_data))):
     iteration.append(print_accuracy(x,y,i,types))
 
-lgs_train = lgs_test = 0
-dt_train = dt_test = 0
-nn_train = nn_test = 0
-lda_train = lda_test = 0
-gnb_train = gnb_test = 0
-svm_train = svm_test = 0
-nc_train = nc_test = 0
+data = []
 
-for j in iteration:
-    lgs_train += j[0][0]
-    lgs_test += j[1][0]
-    dt_train += j[0][1]
-    dt_test += j[1][1]
-    nn_train += j[0][2]
-    nn_test += j[1][2]
-    lda_train += j[0][3]
-    lda_test += j[1][3]
-    gnb_train += j[0][4]
-    gnb_test += j[1][4]
-    svm_train += j[0][5]
-    svm_test += j[1][5]
-    nc_train += j[0][6]
-    nc_test += j[1][6]
-    
-mean_train_lgs = "{:0.2%}".format(lgs_train/len(iteration))
-mean_test_lgs = "{:0.2%}".format(lgs_test/len(iteration))
-mean_train_dt = "{:0.2%}".format(dt_train/len(iteration))
-mean_test_dt = "{:0.2%}".format(dt_test/len(iteration))
-mean_train_nn = "{:0.2%}".format(nn_train/len(iteration))
-mean_test_nn = "{:0.2%}".format(nn_test/len(iteration))
-mean_train_lda = "{:0.2%}".format(lda_train/len(iteration))
-mean_test_lda = "{:0.2%}".format(lda_test/len(iteration))
-mean_train_gnb = "{:0.2%}".format(gnb_train/len(iteration))
-mean_test_gnb = "{:0.2%}".format(gnb_test/len(iteration))
-mean_train_svm = "{:0.2%}".format(svm_train/len(iteration))
-mean_test_svm = "{:0.2%}".format(gnb_test/len(iteration))
-mean_train_nc = "{:0.2%}".format(nc_train/len(iteration))
-mean_test_nc = "{:0.2%}".format(nc_test/len(iteration))
+for g in range(2):  
+    for k in range(len(types)):
+        value = 0
+        for l in iteration:
+            value += l[g][k]
+            
+        value = value / len(iteration)
+        
+        data.append(value)
 
-training = [mean_train_lgs,mean_train_dt,mean_train_nn,mean_train_lda,mean_train_gnb,mean_train_svm,mean_train_nc]
-test = [mean_test_lgs,mean_test_dt,mean_test_nn,mean_test_lda,mean_test_gnb,mean_test_svm,mean_test_nc]
+mean_train = []
+mean_test = []
+
+for train in data[:7]:
+    train = "{:0.2%}".format(train)
+    mean_train.append(train)
     
+for test in data[7:]:
+    test = "{:0.2%}".format(test)
+    mean_test.append(test)
+
 mean_table = pd.DataFrame({"Types of classification:":types,
-                   "Mean training:":training,
-                   "Mean test:":test})
+                    "Mean training:":mean_train,
+                    "Mean test:":mean_test})
 
 print(mean_table)
