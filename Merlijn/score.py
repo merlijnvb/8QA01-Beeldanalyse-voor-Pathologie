@@ -180,8 +180,8 @@ def define_score():
                         "Mean test:":mean_test})
     print("\n")
     print(mean_table)
-    pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde')
+    pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde',figsize=(10,10))
+    plt.suptitle("The ABCD's plottetd",y=0.9125,fontsize=20)
     plt.savefig('results.png')
-    #print("\n",df)
     
 define_score()
