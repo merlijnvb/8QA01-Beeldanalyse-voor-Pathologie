@@ -5,7 +5,7 @@ from tqdm import tqdm
 """READ ALL FILES IN MAPS"""
 def read_files():
     file = open("labels.csv")
-    file_read = file.readlines()[1:]
+    file_read = file.readlines()
     file.close()
     
     lesion_list = []
@@ -16,7 +16,28 @@ def read_files():
     
     return lesion_list
 
-def border_evaluation(mask):   
+"""READ IMAGES AND CONVERT THEM"""
+def img_conversion(mask_file,lesion_file):
+    mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
+    lesion = cv2.imread(lesion_file, cv2.COLOR_BGR2RGB)
+    lesion = cv2.bitwise_and(lesion, lesion, mask=mask)
+    
+    height, width = mask.shape[:2]
+    centre = (width // 2, height // 2)
+    
+    thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
+    contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]
+    
+    angle = cv2.fitEllipse(contours[0])[2] - 90
+    moment = cv2.getRotationMatrix2D(centre, angle, 1.0)
+    
+    mask = cv2.warpAffine(mask, moment, (width, height))
+    lesion = cv2.warpAffine(lesion, moment, (width, height))
+    
+    return (mask, lesion)
+
+"""EVALUATE LESIONS"""
+def border_evaluation(mask):       
     border_blanc = np.zeros((mask.shape[0], mask.shape[1], 3), np.uint8)
     
     thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
@@ -100,11 +121,10 @@ def symmetry_evaluation(mask):
     
     return (horizontal_result,vertical_result)
 
-
 """RETURN RESULTS OF LESIONS"""
 def return_results():
     #OPEN DOCUMENT TO INSERT RESULTS
-    document = open("results.txt", "w")
+    document = open("results.csv", "w")
     data = read_files()
     
     for fileset in tqdm(data):
@@ -116,10 +136,9 @@ def return_results():
         mask_file = "data_masks\{}".format(fileset[0])
         lesion_file = "data\{}".format(fileset[1])
         
-        mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
-        lesion = cv2.imread(lesion_file, cv2.COLOR_BGR2RGB)
-        lesion = cv2.bitwise_and(lesion, lesion, mask=mask)      
-        
+        lesion = img_conversion(mask_file, lesion_file)[1]
+        mask = img_conversion(mask_file, lesion_file)[0
+                                                     ]
         lng_bor = border_evaluation(mask)
         area = colour_evaluation(mask, lesion)[0]
         clr_score = colour_evaluation(mask, lesion)[1]
