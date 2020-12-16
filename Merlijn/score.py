@@ -9,11 +9,11 @@ from tqdm import tqdm
 
 def read_files():
     csv = open("labels.csv")
-    csv_read = csv.readlines()[1:]
+    csv_read = csv.readlines()
     csv.close()
-    file = open("results.txt")
-    file_read = file.readlines()
-    file.close()
+    results = open("results.csv")
+    results_read = results.readlines()
+    results.close()
     
     control_group = []
     value_data = []
@@ -22,7 +22,7 @@ def read_files():
         lines = tuple(lines.rstrip().split(","))
         control_group.append(lines[1])
 
-    for lines in file_read[1:]:
+    for lines in results_read[1:]:
         lines = lines.rstrip()
         lines = tuple(lines.split(","))
         value_data.append(lines)
@@ -61,7 +61,7 @@ def extract_info():
                         "Diameter score":list_diameter_score})   
     return df
 
-def print_accuracy(test_features,control_group,folds,types):
+def print_accuracy(test_features,control_group,folds,classifiers):
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import MinMaxScaler
     from sklearn.linear_model import LogisticRegression
@@ -107,7 +107,7 @@ def print_accuracy(test_features,control_group,folds,types):
     training_sets = []
     test_sets = []
     
-    for i in range(len(types)):
+    for i in range(len(classifiers)):
         train = float(get_accuracy(x_train,y_train)[i])
         test = float(get_accuracy(x_test, y_test)[i])
         
@@ -118,47 +118,30 @@ def print_accuracy(test_features,control_group,folds,types):
     test_sets = tuple(test_sets)
     
     return (training_sets,test_sets)
-
-def boolean_conv(array):
-    control_group = []
     
-    for txt in array:
-        if txt == "False":
-            control_group.append(0)
-        if txt == "True":
-            control_group.append(1)
-            
-    return control_group
-            
-        
-
 def define_score():
-    import matplotlib.pyplot as plt
+    # import matplotlib.pyplot as plt
     
     df = extract_info()
-    value_data, array = read_files()
+    value_data, control_group = read_files()
     
-    control_group = boolean_conv(array)
-    print(len(control_group))
+    classifiers = ["Logistic regression","Decision Tree","Nearest Neighbor"," Linear Discriminant Analysis",
+                   "Gaussian Naive Bayes","Support Vector Machine","Nearest Centroid"]
     
-    types = ["Logistic regression","Decision Tree","Nearest Neighbor"," Linear Discriminant Analysis",
-              "Gaussian Naive Bayes","Support Vector Machine","Nearest Centroid"]
-    
-    features = ['Asymmetry score', 'Border score', 'Diameter score','Colour score'] # add colour score here
-    test_features = df[features]
+    test_features = df[list(df.keys())]
     
     iteration = []
     
-    for i in tqdm(range(len(value_data))):
-        iteration.append(print_accuracy(test_features,control_group,i,types))
+    for folds in tqdm(range(len(value_data))):
+        iteration.append(print_accuracy(test_features,control_group,folds,classifiers))
     
     data = []
     
-    for i in range(2):  
-        for j in range(len(types)):
+    for mode in range(2):  
+        for types in range(len(classifiers)):
             value = 0
-            for k in iteration:
-                value += k[i][j]
+            for dataset in iteration:
+                value += dataset[mode][types]
                 
             value = value / len(iteration)
             
@@ -175,13 +158,13 @@ def define_score():
         test = "{:0.2%}".format(test)
         mean_test.append(test)
     
-    mean_table = pd.DataFrame({"Types of classification:":types,
+    mean_table = pd.DataFrame({"Types of classification:":classifiers,
                         "Mean training:":mean_train,
                         "Mean test:":mean_test})
     print("\n")
     print(mean_table)
-    pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde',figsize=(10,10))
-    plt.suptitle("The ABCD's plottetd",y=0.9125,fontsize=20)
-    plt.savefig('results.png')
+    # pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde',figsize=(10,10))
+    # plt.suptitle("The ABCD's plottetd",y=0.9125,fontsize=20)
+    # plt.savefig('results.png')
     
 define_score()
