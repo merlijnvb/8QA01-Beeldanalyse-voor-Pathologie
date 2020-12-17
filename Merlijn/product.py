@@ -19,7 +19,9 @@ def read_files():
 """READ IMAGES AND CONVERT THEM"""
 def img_conversion(mask_file,lesion_file):
     mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
-    lesion = cv2.imread(lesion_file, cv2.COLOR_BGR2RGB)
+ 
+    lesion = cv2.imread(lesion_file)
+    lesion = cv2.cvtColor(lesion, cv2.COLOR_BGR2RGB)
     lesion = cv2.bitwise_and(lesion, lesion, mask=mask)
     
     height, width = mask.shape[:2]
@@ -33,7 +35,7 @@ def img_conversion(mask_file,lesion_file):
     
     mask = cv2.warpAffine(mask, moment, (width, height))
     lesion = cv2.warpAffine(lesion, moment, (width, height))
-    
+
     return (mask, lesion)
 
 """EVALUATE LESIONS"""
@@ -43,10 +45,10 @@ def border_evaluation(mask):
     thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
     contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]
         
-    border = cv2.drawContours(border_blanc,contours, 0, (255, 255, 255), 1)
+    border = cv2.drawContours(border_blanc,contours, 0, (255, 255, 255), 3)
     
     length_border = np.sum(border == 255)
-    
+
     return length_border
     
 def colour_evaluation(mask, lesion):  
@@ -75,7 +77,7 @@ def colour_evaluation(mask, lesion):
         
         if (np.sum(mask_colour == 255) / area) >= 0.05:
             colour_score += 1
-            
+        
     return (area,colour_score)
     
 def symmetry_evaluation(mask):
@@ -115,7 +117,6 @@ def symmetry_evaluation(mask):
     if superior.shape[0] == inferior.shape[0]:
         horizontal_result = superior - inferior
         
-        
     horizontal_result = np.sum(horizontal_result == 255)
     vertical_result = np.sum(vertical_result == 255)
     
@@ -128,22 +129,19 @@ def return_results():
     data = read_files()
     
     for fileset in tqdm(data):
-        index = fileset[0][:-4]
+        index = fileset[1][:-4]
         
-        if index == data[0][0][:-4]:
+        if index == data[0][1][:-4]:
             document.write("index,lng_bor,area,hor_overl,vrt_overl,clr_score\n")
         
         mask_file = "data_masks\{}".format(fileset[0])
         lesion_file = "data\{}".format(fileset[1])
         
-        lesion = img_conversion(mask_file, lesion_file)[1]
-        mask = img_conversion(mask_file, lesion_file)[0
-                                                     ]
+        mask, lesion = img_conversion(mask_file, lesion_file)
+        
         lng_bor = border_evaluation(mask)
-        area = colour_evaluation(mask, lesion)[0]
-        clr_score = colour_evaluation(mask, lesion)[1]
-        hor_overl = symmetry_evaluation(mask)[0]
-        vrt_overl = symmetry_evaluation(mask)[1]
+        area, clr_score = colour_evaluation(mask, lesion)
+        hor_overl, vrt_overl = symmetry_evaluation(mask)
         
         line = "{0:s},{1:d},{2:d},{3:d},{4:d},{5:d}\n".format(index,lng_bor,area,hor_overl,vrt_overl,clr_score)
         document.write(line)
