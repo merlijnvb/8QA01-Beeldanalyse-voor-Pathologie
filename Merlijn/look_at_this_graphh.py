@@ -2,21 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-"""READ ALL FILES IN MAPS"""
-def read_files():
-    file = open("labels.csv")
-    file_read = file.readlines()
-    file.close()
-    
-    lesion_list = []
-    
-    for lines in file_read[1:]:
-        lines = tuple(lines.rstrip().split(","))
-        lesion_list.append(("{}_segmentation.png".format(lines[0]),"{}.jpg".format(lines[0])))
-    
-    return lesion_list
-
-"""READ IMAGES AND CONVERT THEM"""
+""READ IMAGES AND CONVERT THEM"""
 def img_conversion(mask_file,lesion_file):
     mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
  
