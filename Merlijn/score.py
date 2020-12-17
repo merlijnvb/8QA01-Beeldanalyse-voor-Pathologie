@@ -1,8 +1,3 @@
-#https://docs.opencv.org/master/d1/d32/tutorial_py_contour_properties.html
-#https://answers.opencv.org/question/204175/how-to-get-boundry-and-center-information-of-a-mask/
-#https://towardsdatascience.com/solving-a-simple-classification-problem-with-python-fruits-lovers-edition-d20ab6b071d2
-#https://www.marsja.se/pandas-scatter-matrix-pair-plot/#:~:text=A%20scatter%20matrix%20(pairs%20plot,method%20to%20visualize%20the%20dataset.
-
 import math
 import pandas as pd
 from tqdm import tqdm
@@ -29,8 +24,7 @@ def read_files():
         
     return value_data, control_group
 
-def extract_info():
-    value_data = read_files()[0]
+def extract_info(value_data):
     
     list_colour_scores = []
     list_border_score = []
@@ -47,7 +41,7 @@ def extract_info():
         diameter = border / math.pi
         
         border_score = (border**2) / (area*math.pi*4)
-        symmetry_score = symmetry_vertical / symmetry_horizontal
+        symmetry_score = (symmetry_vertical + symmetry_horizontal) / area
         diameter_score = diameter / area
         
         list_border_score.append(border_score)
@@ -119,11 +113,9 @@ def print_accuracy(test_features,control_group,folds,classifiers):
     
     return (training_sets,test_sets)
     
-def define_score():
-    # import matplotlib.pyplot as plt
-    
-    df = extract_info()
+def define_score():    
     value_data, control_group = read_files()
+    df = extract_info(value_data)
     
     classifiers = ["Logistic regression","Decision Tree","Nearest Neighbor"," Linear Discriminant Analysis",
                    "Gaussian Naive Bayes","Support Vector Machine","Nearest Centroid"]
@@ -163,8 +155,4 @@ def define_score():
                         "Mean test:":mean_test})
     
     mean_table = mean_table.to_csv("classifiers.csv",index=False,sep=",")
-    
-    # pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde',figsize=(10,10))
-    # plt.suptitle("The ABCD's plottetd",y=0.9125,fontsize=20)
-    # plt.savefig('results.png')
 define_score()
