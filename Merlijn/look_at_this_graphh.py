@@ -125,6 +125,20 @@ def symmetry_evaluation(mask):
     if superior.shape[0] == inferior.shape[0]:
         horizontal_result = superior - inferior
         
+    """SIDES"""
+    plt.imshow(inferior)
+    plt.suptitle("inferior side")
+    plt.show()
+    plt.imshow(superior)
+    plt.suptitle("superior side")
+    plt.show()
+    plt.imshow(left)
+    plt.suptitle("left side")
+    plt.show()
+    plt.imshow(right)
+    plt.suptitle("right side")
+    plt.show()
+    """OVERLAPSE"""
     plt.imshow(horizontal_result)
     plt.suptitle("Horizontal overlapse")
     plt.show()
