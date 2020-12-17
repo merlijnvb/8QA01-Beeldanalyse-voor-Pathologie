@@ -45,7 +45,7 @@ def border_evaluation(mask):
     thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
     contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]
         
-    border = cv2.drawContours(border_blanc,contours, 0, (255, 255, 255), 2)
+    border = cv2.drawContours(border_blanc,contours, 0, (255, 255, 255), 3)
     
     length_border = np.sum(border == 255)
     
