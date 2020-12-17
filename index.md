@@ -1,5 +1,4 @@
-# TU/e OGO: 8QA01, Image Analysis for cancer risk assessment
-### GROUP 5
+# GROUP 5
 
 Skin cancer accounts for over 40% of all cancer cases. By detecting skin cancer early, by noticing abnormal changes in birth marks on the skin, survival can be dramatically improved. However, people might hesitate to consult a doctor for any new change that they see. Using a smartphone app as a first check could help people   determine   whether   a   change   is   really   nothing,   or   whether   they   really   should   make   an appointment.
 
