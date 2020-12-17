@@ -68,9 +68,10 @@ def make_grids():
     
     pd.plotting.scatter_matrix(sdf, hist_kwds={'bins':len(value_data)},diagonal='kde',figsize=(10,10))
     plt.suptitle("ABCD-scores plottetd",y=0.9125,fontsize=20)
+    plt.savefig("ABCD_scatterd")
     
     pd.plotting.scatter_matrix(vdf, hist_kwds={'bins':len(value_data)},diagonal='kde',figsize=(10,10))
     plt.suptitle("Values plotted",y=0.9125,fontsize=20)
-    
+    plt.savefig("Values_scatterd")
     
 make_grids()
