@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-""READ IMAGES AND CONVERT THEM"""
+"""READ IMAGES AND CONVERT THEM"""
 def img_conversion(mask_file,lesion_file):
     mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
  
