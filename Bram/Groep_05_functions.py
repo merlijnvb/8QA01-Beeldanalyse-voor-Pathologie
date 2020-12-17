@@ -14,22 +14,23 @@ from scipy.stats.stats import mode
 from sklearn.neighbors import NearestCentroid
 from sklearn.utils import shuffle
 from sklearn.cluster import KMeans
+from sklearn.neighbors import KNeighborsClassifier
 
 
-def border_evaluation(mask):   
-    height, width = mask.shape[:2]
-    dim = (width-2, height-2)  
-
-    resized = cv2.resize(mask, dim)
-    resized = cv2.copyMakeBorder(resized, 1, 1, 1, 1, 0, None, None)
-    border = mask - resized
+def border_evaluation(mask):       
+    border_blanc = np.zeros((mask.shape[0], mask.shape[1], 3), np.uint8)
     
-    length_border = np.sum(border > 0)
-    area_mask = np.sum(mask > 0)
-
-    border_score = (length_border**2) / (4*math.pi*area_mask)
+    thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
+    contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]
+        
+    border = cv2.drawContours(border_blanc,contours, 0, (255, 255, 255), 1)
     
-    return (border_score, border)
+    length_border = np.sum(border == 255)
+    area = np.sum(mask > 0)
+    
+    length_border = length_border.astype('int64')
+    
+    return (length_border**2)/(area*4*math.pi)
 
 def imsize_evaluation(lesion, mask):
     x, y, z = lesion.shape
@@ -66,19 +67,17 @@ def colour_evaluation(lesion, mask):
         
     return colour_score
 
-def color_cluster_evaluation(lesion, mask):
-    masker_bool = mask[:, :]==0 # Maak het masker een boolean ding
-    lesion2 = lesion.copy() # Error fixen, geen idee waarom
-    lesion2[masker_bool] = [0, 0, 0] # Haal de rand weg
-    # Dit allemaal is niet meer nodig als in het begin van het jupyter bestand ofzo
-    # de foto wordt gedraaid en bijgesneden
+def color_cluster_evaluation(lesion, mask, cluster_aantal = 5, HSV = False):
     
-    w, h, d = tuple(lesion2.shape) # Sla afmetingen op
-    image_array = np.reshape(lesion2, (w * h, d)) # Zet alle pixels onder elkaar
+    if HSV == True:
+        lesion = cv2.cvtColor(lesion, cv2.COLOR_RGB2HSV)
+    
+    w, h, d = tuple(lesion.shape) # Sla afmetingen op
+    image_array = np.reshape(lesion, (w * h, d)) # Zet alle pixels onder elkaar
     image_array_sample = shuffle(image_array, random_state=0)[:10000] # Alleen de eerste random 10000
     # pixels worden meegenomen in het bepalen van de clusters zodat het niet een uur duurt
     
-    kmeans = KMeans(n_clusters=5, random_state=0).fit(image_array_sample)
+    kmeans = KMeans(n_clusters=cluster_aantal, random_state=0).fit(image_array_sample)
     # Maak clusters
     
     centroids = kmeans.cluster_centers_
@@ -86,14 +85,16 @@ def color_cluster_evaluation(lesion, mask):
 
     D = cdist(centroids, centroids, metric='seuclidean') # Afstand tussen alle midden clusters
     totaal = 0
-    for i in range(5):
-        for j in range(5):
+    for i in range(cluster_aantal):
+        for j in range(cluster_aantal):
             if i<j:
                 totaal = totaal + D[i, j] # Gemiddelde afstand berekenen
-    return totaal/10
+                
+    return totaal/((cluster_aantal*(cluster_aantal-1))/2)
     
 
 def image_rotation(lesion, mask):
+    # Niet meer in gebruik, vervangen door img_conversion
     
     height, width = mask.shape[:2]
     centre = (width // 2, height // 2)
@@ -117,6 +118,28 @@ def image_rotation(lesion, mask):
     rotated_image_scaled = cv2.copyMakeBorder(rotated_image, 25, 25, 25, 25, 0, None, None)
     
     return (rotated_mask_scaled, rotated_image_scaled)
+
+def img_conversion(mask, lesion):
+    # De plaatjes worden al ingelezen en omgezet naar de goede formaten
+    # lesion = cv2.bitwise_and(lesion, lesion, mask=mask) # Deze geeft een error dus toch mijn eigen oplossing
+    
+    masker_bool = mask[:, :]==0 # Maak het masker een boolean ding
+    lesion2 = lesion.copy() # Error fixen, geen idee waarom
+    lesion2[masker_bool] = [0, 0, 0] # Haal de rand weg
+    
+    height, width = mask.shape[:2]
+    centre = (width // 2, height // 2)
+    
+    thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
+    contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]
+    
+    angle = cv2.fitEllipse(contours[0])[2] - 90
+    moment = cv2.getRotationMatrix2D(centre, angle, 1.0)
+    
+    mask = cv2.warpAffine(mask, moment, (width, height))
+    lesion = cv2.warpAffine(lesion, moment, (width, height))
+    
+    return (mask, lesion)
 
 def symmetry_evaluation(lesion, mask):
     
@@ -174,7 +197,7 @@ def symmetry_evaluation(lesion, mask):
     quotient_vertical = pix_diff_vertical / pix_melanoma
     quotient_horizontal = pix_diff_horizontal / pix_melanoma
     
-    return (quotient_vertical,quotient_horizontal,right,left_flipped,superior,inferior_flipped,resultaat_horizontal,resultaat_vertical)
+    return (quotient_vertical,quotient_horizontal) # Alle tussenstappen niet returnen, is alleen onnodig datagebruik
 
 def scatter_data(X1, X2, Y, ax=None):
     # scatter_data displays a scatterplot of dataset X1 vs X2, and gives each point
@@ -231,6 +254,8 @@ def nearest_mean_classifier(X_train, y_train, X_validation, X_test):
     # y_pred_validation - num_test x 1 predicted vector with labels for the validation data
     # y_pred_test - num_test x 1 predicted vector with labels for the test data
 
+    # Niet in gebruik
+
     X_test_val = np.vstack((X_validation, X_test))
     # Gooi datasets samen
 
@@ -243,3 +268,20 @@ def nearest_mean_classifier(X_train, y_train, X_validation, X_test):
     y_pred_validation = predicted_labels[:len(X_validation)]
     y_pred_test = predicted_labels[len(X_validation):]
     return y_pred_validation, y_pred_test
+
+def k_bepalen(X_train, y_train, X_test, y_test):
+    error = []
+
+    # Niet in gebruik, succes rate wordt bepaald
+
+    for i in range(1, len(X_train)):
+        knn = KNeighborsClassifier(n_neighbors=i)
+        knn.fit(X_train, y_train)
+        pred_i = knn.predict(X_test)
+        error.append(np.mean(pred_i != y_test))
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(range(1, len(X_train)), error, 'ro', markersize=10)
+    plt.title('Error Rate K Value')
+    plt.xlabel('K Value')
+    plt.ylabel('Mean Error')

@@ -13,7 +13,6 @@ import Groep_05_functions as util
 from skimage import morphology
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.metrics import accuracy_score
-from sklearn.neighbors import KNeighborsClassifier
 from tqdm import tqdm
 
 dataFile = 'class2020_group05_labels.xlsx'
@@ -29,8 +28,6 @@ Melanoma = np.array(dframe1['melanoma'])
 numImages = len(ID)
 featuresBorder = np.empty([numImages,1])
 featuresBorder[:] = np.nan
-featuresColor = np.empty([numImages,1])
-featuresColor[:] = np.nan
 featuresAsymmetry = np.empty([numImages,1])
 featuresAsymmetry[:] = np.nan
 featuresColorClusters = np.empty([numImages,1])
@@ -45,29 +42,27 @@ for i in tqdm(np.arange(numImages)):
     # Read the images with these filenames
     im = plt.imread(imFile)
     mask = plt.imread(maskFile)
-    
-    #Draai de foto
-    #mask, im = util.image_rotation(im, mask) Doet het niet
+    #Draai de foto    
+    mask = mask.astype(np.uint8)
+    mask, im = util.img_conversion(mask, im)
     
     # Measure features
-    border_score, border = util.border_evaluation(mask)
-    color_score_clusters = util.color_cluster_evaluation(im, mask) # Kleur met clusters
-    color_score = util.colour_evaluation(im, mask) # Kleur met intervallen
-    #asymmetry_score = util.symmetry_evaluation(im, mask) Werkt niet zolang draaien niet werkt
+    border_score = util.border_evaluation(mask)
+    color_score_clusters = util.color_cluster_evaluation(im, mask, cluster_aantal = 5, HSV = False) # Kleur met clusters
+    asymmetry_score = util.symmetry_evaluation(im, mask)
     # xx, yy, zz = util.measureYourOwnFeatures(mask)
     
     # Store in the variables we created before
-    featuresBorder[i] = border_score
-    featuresColor[i] = color_score
-    featuresColorClusters[i] = color_score_clusters
-    #featuresAsymmetry[i,0] = asymmetry_score
+    featuresBorder[i] = border_score * 0.25
+    featuresColorClusters[i] = color_score_clusters * 2
+    featuresAsymmetry[i] = ((asymmetry_score[0]+asymmetry_score[1])/2) * 100
     # featuresOther[i,0] = xx
     
 outfile = 'group2020_05_automatic.csv'
 outdata = {"id": ID, 
            "melanoma": Melanoma.flatten(),
            "border": featuresBorder.flatten(),
-           "color": featuresColor.flatten(),
+           "asymmetry": featuresAsymmetry.flatten(),
            "colorclusters": featuresColorClusters.flatten()}
 
 dframe_out = pd.DataFrame(outdata)
@@ -78,25 +73,30 @@ outfile = 'group2020_05_automatic.csv'
 dframe = pd.read_csv(outfile)
 ID = list(dframe['id']) # Leuk dat deze gegevens weer worden geladen maar buiten het plotten worden ze niet gebruikt
 featuresBorder = np.array(dframe['border'])
-featuresColor = np.array(dframe['color'])
+featuresColor = np.array(dframe['asymmetry'])
 featuresColorClusters = np.array(dframe['colorclusters'])
 
 # Display 2 features measured in a scatterplot, 
-axs = util.scatter_data(featuresBorder, featuresColorClusters, Melanoma)
-axs.set_xlabel('X1 = Border')
+axs = util.scatter_data(featuresAsymmetry, featuresColorClusters, Melanoma)
+axs.set_xlabel('X1 = asymmetry')
 axs.set_ylabel('X2 = Color Clusters')
 axs.legend()
 
 #Define K's that are tested on the validation set and the number of the current fold
-Validation_K = range(1, 20)
+K_range_lower = 2
+K_range_upper = 20 # Not inclusive
+Validation_K = range(K_range_lower, K_range_upper)
 curr_fold = 0
 # Load features
 X = dframe.iloc[:,2:].to_numpy() # Vanaf 2 zodat melanoma info niet wordt meegenomen
 # Load labels
 y = Melanoma
-all_acc_test= np.empty([5, 19])
+
+K_range_length = K_range_upper - K_range_lower
+
+all_acc_test= np.empty([5, K_range_length])
 all_acc_test[:] = np.nan
-all_acc_val=np.empty([5, 19])
+all_acc_val=np.empty([5, K_range_length])
 all_acc_val[:]=np.nan
 
 # Split dataset into 5 different dataset folds for cross-validation
@@ -146,11 +146,11 @@ for train_index, test_val_index in kf.split(X, y):
 #Plot average accuracies for all K's 
 gem_acc_test=[] # Initialise variables for storing average accuracies
 gem_acc_val=[]
-for i in range(19):
+for i in range(K_range_length):
     acc_val = all_acc_val[:, i] # Take the accuracies of a certain K
     acc_test = all_acc_test[:, i]
     gem_acc_test.append(np.sum(acc_test)/len(acc_test)) # Calculate and store average accuracy
     gem_acc_val.append(np.sum(acc_val)/len(acc_val))
-plt.plot(Validation_K, gem_acc_test,'r-') # Plot these average accuracies for each K
-plt.plot(Validation_K, gem_acc_val, 'b-') # Omdat ik niet weet hoe ik met plotten om moet gaan
+#plt.plot(Validation_K, gem_acc_test,'r-') # Plot these average accuracies for each K
+#plt.plot(Validation_K, gem_acc_val, 'b-') # Omdat ik niet weet hoe ik met plotten om moet gaan
 # plot het allebei in 1
