@@ -161,10 +161,10 @@ def define_score():
     mean_table = pd.DataFrame({"Types of classification:":classifiers,
                         "Mean training:":mean_train,
                         "Mean test:":mean_test})
-    print("\n")
-    print(mean_table)
+    
+    mean_table = mean_table.to_csv("classifiers.csv",index=False,sep=",")
+    
     # pd.plotting.scatter_matrix(df, hist_kwds={'bins':len(value_data)},diagonal='kde',figsize=(10,10))
     # plt.suptitle("The ABCD's plottetd",y=0.9125,fontsize=20)
     # plt.savefig('results.png')
-    
 define_score()
