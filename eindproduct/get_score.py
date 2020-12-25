@@ -165,7 +165,7 @@ def define_score(features):
                         "Mean training:":mean_train,
                         "Mean test:":mean_test})
     
-    mean_table = mean_table.to_csv("classifiers_{}.csv".format(name),index=False,sep=",")
+    mean_table = mean_table.to_csv("results_classifiers_{}.csv".format(name),index=False,sep=",")
 
 def get_results():
     features = [("intervals",["Asymmetry score","Border score","Colour score","Diameter score"]),
