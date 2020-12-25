@@ -173,7 +173,3 @@ def get_results():
     
     for feature in features:
         define_score(feature)
-
-get_results()
-    
-    
