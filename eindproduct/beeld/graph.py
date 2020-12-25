@@ -1,135 +1,83 @@
-import cv2
-import numpy as np
-import os
+import math
+import pandas as pd
+import matplotlib.pyplot as plt
 
-"""READ IMAGES AND CONVERT THEM"""
-def img_conversion(mask_file,lesion_file):
-    mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
- 
-    lesion = cv2.imread(lesion_file)
-    lesion = cv2.bitwise_and(lesion, lesion, mask=mask)
+def read_files():
+    results = open("results.csv")
+    results_read = results.readlines()
+    results.close()
     
+    value_data = []
     
-    cv2.imwrite("original_lesion.png", lesion)
-    
-    height, width = mask.shape[:2]
-    centre = (width // 2, height // 2)
-    
-    thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
-    contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]
-    
-    angle = cv2.fitEllipse(contours[0])[2] - 90
-    moment = cv2.getRotationMatrix2D(centre, angle, 1.0)
-    
-    mask = cv2.warpAffine(mask, moment, (width, height))
-    lesion = cv2.warpAffine(lesion, moment, (width, height))
+    for lines in results_read[1:]:
+        lines = lines.rstrip()
+        lines = tuple(lines.split(","))
+        value_data.append(lines)
+        
+    return value_data
 
-    cv2.imwrite("rotated_mask.png", mask)
-    cv2.imwrite("rotated_lesion.png", lesion)
+def make_grids():
+    value_data = read_files()
+    
+    list_colour_scores = []
+    list_border_score = []
+    list_symmetry_score = []
+    list_diameter_score = []
+    list_colour_cluster_score = []
 
-    lesion = cv2.cvtColor(lesion, cv2.COLOR_BGR2RGB)
+    list_border_length = []
+    list_symmetry_hor_overlapse = []
+    list_symmetry_ver_overlapse = []
+    list_diameter = []
+    list_area = []
     
-    return (mask,lesion)
+    for tupl in value_data:
+        border = int(tupl[1])
+        area = int(tupl[2])
+        symmetry_horizontal = int(tupl[3])
+        symmetry_vertical = int(tupl[4])
+        colour_score = int(tupl[5])
+        colour_cluster_score = float(tupl[6])
+        
+        diameter = border / math.pi
+        
+        border_score = (border**2) / (area*math.pi*4)
+        symmetry_score = (symmetry_vertical + symmetry_horizontal) / area
+        diameter_score = diameter / area
+        
+        list_border_score.append(border_score)
+        list_symmetry_score.append(symmetry_score)
+        list_diameter_score.append(diameter_score)
+        list_colour_scores.append(colour_score)
+        list_colour_cluster_score.append(colour_cluster_score)
 
-"""EVALUATE LESIONS"""
-def border_evaluation(mask):       
-    border_blanc = np.zeros((mask.shape[0], mask.shape[1], 3), np.uint8)
-    
-    thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
-    contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]
+        list_area.append(area)
+        list_border_length.append(border)
+        list_diameter.append(diameter)
+        list_symmetry_hor_overlapse.append(symmetry_horizontal)
+        list_symmetry_ver_overlapse.append(symmetry_vertical)
         
-    border = cv2.drawContours(border_blanc,contours, 0, (255, 255, 255), 3)
+    sdf = pd.DataFrame({"Asymmetry score":list_symmetry_score,
+                        "Border score":list_border_score,
+                        "Colour score":list_colour_scores,
+                        "Colour cluster":colour_cluster_score,
+                        "Diameter score":list_diameter_score})  
     
-    os.remove("border.png")
-    cv2.imwrite("border.png", border)
+    vdf = pd.DataFrame({"Area":list_area,
+                        "Border":list_border_length,
+                        "Diameter":list_diameter,
+                        "Horizontal Symmetry":list_symmetry_hor_overlapse,
+                        "Vertical Symmetry":list_symmetry_ver_overlapse,
+                        "Colour score":list_colour_scores,
+                        "Colour cluster":colour_cluster_score})  
     
-def colour_evaluation(mask, lesion):  
-    mask_inv = 255 - mask
     
-    colours = {'light brown low':(255*0.588, 255*0.2, 255*0),
-              'light brown high':(255*0.94, 255*0.588, 255*392),
-              'dark brown low':(255*0.243, 255*0, 255*0),
-              'dark borwn high':(255*56, 255*0.392, 255*392),
-              'white low':(255*0.8, 255*0.8, 255*0.8),
-              'white high':(255, 255, 255),
-              'red low':(255*0.588, 255*0, 255*0),
-              'red high':(255, 255*0.19, 255*0.19),
-              'blue gray low':(255*0, 255*0.392, 255*0.490),
-              'blue gray high':(255*0.588, 255*0.588, 255*0.588),
-              'black low':(255*0, 255*0, 255*0),
-              'black high':(255*0.243, 255*0.243, 255*0.243)}
+    pd.plotting.scatter_matrix(sdf, hist_kwds={'bins':len(value_data)},diagonal='kde',figsize=(10,10))
+    plt.suptitle("ABCD-scores plottetd",y=0.9125,fontsize=20)
+    plt.savefig("ABCD_scatterd")
     
-    for i in range(0,len(colours),2):
-        mask_colour = cv2.inRange(lesion, colours.get(list(colours.keys())[i]), colours.get(list(colours.keys())[i+1]))
+    pd.plotting.scatter_matrix(vdf, hist_kwds={'bins':len(value_data)},diagonal='kde',figsize=(10,10))
+    plt.suptitle("Values plotted",y=0.9125,fontsize=20)
+    plt.savefig("Values_scatterd")
     
-        if list(colours.keys())[i] == list(colours.keys())[-2] and list(colours.keys())[i+1] == list(colours.keys())[-1]:
-            mask_colour = mask_colour - mask_inv
-        
-        mask_in_colour = cv2.bitwise_and(lesion, lesion, mask=mask_colour)
-        mask_in_colour = cv2.cvtColor(mask_in_colour, cv2.COLOR_RGB2BGR)
-        
-        os.remove("coloured_mask_{}.png".format(i))
-        cv2.imwrite("coloured_mask_{}.png".format(i), mask_in_colour)
-    
-def symmetry_evaluation(mask):
-    height, width = mask.shape[:2]
-    moment = cv2.moments(mask)
-    
-    centre_blob_x = int(moment["m10"] / moment["m00"])
-    centre_blob_y = int(moment["m01"] / moment["m00"])
-
-    superior = mask[0:centre_blob_y, 0:width]
-    inferior = mask[centre_blob_y:height, 0:width]
-    inferior = cv2.flip(inferior, 0)
-    
-    left = mask[0:height, 0:centre_blob_x]
-    left = cv2.flip(left, 1)
-    right = mask[0:height, centre_blob_x:width]
-    
-    if superior.shape[0] > inferior.shape[0]:
-        inferior = cv2.copyMakeBorder(inferior, superior.shape[0]-inferior.shape[0], None, None, None, 0, None, None)                     
-        horizontal_result = superior - inferior
-        
-    if superior.shape[0] < inferior.shape[0]:
-        superior = cv2.copyMakeBorder(superior, inferior.shape[0]-superior.shape[0], None, None, None, 0, None, None)  
-        horizontal_result = inferior - superior
-    
-    if left.shape[1] > right.shape[1]:
-        right = cv2.copyMakeBorder(right, None, None, None, left.shape[1]-right.shape[1], 0, None, None)
-        vertical_result = left - right
-        
-    if left.shape[1] < right.shape[1]:
-        left = cv2.copyMakeBorder(left, None, None, None, right.shape[1]-left.shape[1], 0, None, None)
-        vertical_result = right - left
-        
-    if left.shape[1] == right.shape[1]:  
-        vertical_result = right - left
-    
-    if superior.shape[0] == inferior.shape[0]:
-        horizontal_result = superior - inferior
-    
-    os.remove("inferior_side.png")
-    os.remove("superior_side.png")
-    os.remove("left_side.png")
-    os.remove("right_side.png")
-    os.remove("horizontal_overlapse.png")
-    os.remove("vertical_overlapse.png")
-    cv2.imwrite("inferior_side.png", inferior)
-    cv2.imwrite("superior_side.png", superior)
-    cv2.imwrite("left_side.png", left)
-    cv2.imwrite("right_side.png", right)
-    cv2.imwrite("horizontal_overlapse.png", horizontal_result)
-    cv2.imwrite("vertical_overlapse.png", vertical_result)
-
-"""CALL EVERY FUNCTION 1 TIME TO SHOW RESULTS"""
-def return_results(mask_file, lesion_file):
-    mask, lesion = img_conversion(mask_file, lesion_file)
-    
-    symmetry_evaluation(mask)
-    border_evaluation(mask)
-    colour_evaluation(mask, lesion)
-    
-#INPUT FILE NAMES FOR WICH YOU WANT TO GET IMAGES AS REULTS
-mask_file = "data_masks\ISIC_0014987_segmentation.png"
-lesion_file = "data\ISIC_0014987.jpg"
-return_results(mask_file, lesion_file)
+make_grids()
