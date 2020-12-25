@@ -186,5 +186,3 @@ def return_results():
         line = "{0:s},{1:d},{2:d},{3:d},{4:d},{5:d},{6:f}\n".format(index,lng_bor,area,hor_overl,vrt_overl,clr_score,cluster_clr_score)
         document.write(line)
     document.close()
-
-return_results()
