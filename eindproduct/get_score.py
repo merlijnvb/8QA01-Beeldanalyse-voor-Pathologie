@@ -106,7 +106,7 @@ def define_score(features):
     value_data, control_groups = read_files()
     df = extract_info(value_data,control_groups)
     
-    classifiers = ["Logistic regression","Decision Tree","Nearest Neighbor"," Linear Discriminant Analysis",
+    classifiers = ["Logistic regression","Decision Tree","Nearest Neighbor","Linear Discriminant Analysis",
                    "Gaussian Naive Bayes","Support Vector Machine","Nearest Centroid"]
     
     name = features[0]
