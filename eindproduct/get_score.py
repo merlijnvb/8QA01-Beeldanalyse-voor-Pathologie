@@ -12,27 +12,18 @@ from sklearn.svm import SVC
 from sklearn.neighbors import NearestCentroid
 
 def read_files():
-    csv = open("labels.csv")
-    csv_read = csv.readlines()
-    csv.close()
     results = open("results.csv")
     results_read = results.readlines()
     results.close()
     
     control_groups = []
     value_data = []
-    
-    for lines in csv_read[1:]:
-        lines = tuple(lines.rstrip().split(",")[:-1])
-        control_groups.append(lines)
-    
+       
     for lines in results_read[1:]:
         lines = lines.rstrip()
         lines = tuple(lines.split(","))
-        value_data.append(lines)
-    
-    control_groups.sort()
-    value_data.sort()
+        value_data.append(lines[:-1])
+        control_groups.append(lines[-1])
     
     return value_data, control_groups
 
@@ -60,22 +51,11 @@ def extract_info(value_data, control_groups):
         list_data.append((symmetry_score,border_score,colour_score,cluster_colour_score,diameter_score))
     
     df = pd.DataFrame(list_data,index=list_id,columns=["Asymmetry score","Border score","Colour score","Cluster score","Diameter score"])
-    
-    indexes = []
-    control_list = []
-    
-    for data in control_groups:
-        indexes.append(data[0])
-        control_list.append(data[1])
-           
-    for id in df.index:
-        if id not in indexes:
-            df = df.drop(index=id)
 
-    return df, control_list
+    return df
 
 def print_accuracy(test_features,control_group,folds,classifiers):
-    x_train, x_test, y_train, y_test = train_test_split(test_features, control_group,test_size=100/len(control_group), random_state=folds)
+    x_train, x_test, y_train, y_test = train_test_split(test_features, control_group,test_size=0.25, random_state=folds)
      
     scaler = MinMaxScaler()
     x_train = scaler.fit_transform(x_train)
@@ -124,20 +104,20 @@ def print_accuracy(test_features,control_group,folds,classifiers):
 
 def define_score(features):    
     value_data, control_groups = read_files()
-    df, control_list = extract_info(value_data,control_groups)
+    df = extract_info(value_data,control_groups)
     
     classifiers = ["Logistic regression","Decision Tree","Nearest Neighbor"," Linear Discriminant Analysis",
                    "Gaussian Naive Bayes","Support Vector Machine","Nearest Centroid"]
     
-    features = features[1]
     name = features[0]
+    features = features[1]
     test_features = df[features]
         
     iteration = []
 
     for folds in tqdm(range(len(df))):
-        iteration.append(print_accuracy(test_features,control_list,folds,classifiers))
-   
+        iteration.append(print_accuracy(test_features,control_groups,folds,classifiers))
+        
     data = []
     
     for mode in range(2):  
@@ -165,7 +145,7 @@ def define_score(features):
                         "Mean training:":mean_train,
                         "Mean test:":mean_test})
     
-    mean_table = mean_table.to_csv("results_classifiers_{}.csv".format(name),index=False,sep=",")
+    mean_table = mean_table.to_csv("classifiers_{}.csv".format(name),index=False,sep=",")
 
 def get_results():
     features = [("intervals",["Asymmetry score","Border score","Colour score","Diameter score"]),
@@ -173,3 +153,5 @@ def get_results():
     
     for feature in features:
         define_score(feature)
+
+get_results()
