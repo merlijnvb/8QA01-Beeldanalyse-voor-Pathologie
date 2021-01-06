@@ -1,4 +1,4 @@
-index,lng_bor,area,hor_overl,vrt_overl,cluster_clr_score,lesion_label
+index,lng_bor,area,hor_overl,vrt_overl,cluster_clr_score,melanoma_label
 ISIC_0013319,96207,805944,31253,38551,2.246315,False
 ISIC_0013325,34245,453887,5769,6515,2.172206,False
 ISIC_0013393,93183,3418713,50256,64948,2.157538,False
