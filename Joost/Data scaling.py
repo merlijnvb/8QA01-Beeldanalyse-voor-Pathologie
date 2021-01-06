@@ -22,10 +22,10 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.metrics import accuracy_score
 from mpl_toolkits.mplot3d import Axes3D
 def read_files():
-    csv = open("labels.csv")
+    csv = open("class2020_group05_labels.csv")
     csv_read = csv.readlines()
     csv.close()
-    results = open("results.csv")
+    results = open("Resultaten_Groep_5.csv")
     results_read = results.readlines()
     results.close()
 
@@ -40,7 +40,7 @@ def read_files():
 
     for lines in results_read[1:]:
         lines = lines.rstrip()
-        lines = tuple(lines.split(";"))
+        lines = tuple(lines.split(","))
         value_data.append(lines)
         
     return value_data, control_group
@@ -48,7 +48,7 @@ def read_files():
 
 
 value_data, control_group = read_files()
-   
+
 list_colour_scores = []
 list_border_score = []
 list_symmetry_score = []
@@ -56,11 +56,11 @@ list_symmetry_score = []
     
 for tupl in value_data:
         
-    border = int(tupl[1]) 
-    area = int(tupl[2])
-    symmetry_vertical = int(tupl[3])
-    symmetry_horizontal = int(tupl[4])
-    colour_score = tupl[-2]
+    border = float(tupl[2]) 
+    area = float(tupl[1])
+    symmetry_vertical = float(tupl[4])
+    symmetry_horizontal = float(tupl[3])
+    colour_score = tupl[5]
     colour_score = colour_score.replace(",", ".")
     colour_score = ((float(colour_score))) 
     
@@ -107,37 +107,97 @@ distributions = [
         Normalizer().fit_transform(X)),
 ]
 
+
+
+
 for i in distributions:
-    titel = i[0]
-    X = i[1]
+    productC1 = list(range(1, 40, 1))
+    productS1= list(range(1,40, 1))
+    productB1 = list(range(1, 40, 1))
+    productC = []
+    productB = []
+    productS = []
+    percentages= []
+    for a in range(len(productC1)):
+        productC1[a] = productC1[a] * 0.1
+        productS1[a] = productS1[a] * 0.1
+        productB1[a] = productB1[a] * 0.1
 
-    symmetrie = X[:, 0]
-    kleur = X[:, 2]
-    border = X[:, 1]
-    kf = StratifiedShuffleSplit(n_splits=1, test_size=0.4)
-    for train_index, test_val_index in kf.split(X, y):
-        
+    for kleurfactor in productC1:
+        for symmetriefactor in productS1:
+            for borderfactor in productB1:
+                titel = i[0]
+                methode = i[0]
+                productC.append(kleurfactor)
+                productS.append(symmetriefactor)
+                productB.append(borderfactor)
+            
+                X[:,0] = X[:,0]*symmetriefactor
+                X[:,1] = X[:,1]*kleurfactor
+                X[:,2] = X[:,2]*borderfactor
+                symmetrie = X[:, 0]
+                kleur = X[:, 2]
+                border = X[:, 1]
+                kf = StratifiedShuffleSplit(n_splits=1, test_size=0.4)
+                list_border_score.append(border_score)
+                list_symmetry_score.append(symmetry_score)
+                list_colour_scores.append(colour_score)
+                for train_index, test_val_index in kf.split(X, y):
+                    
+            
+                    
+                    test_index , val_index = np.array_split(test_val_index, 2)
+                    X_train, X_val, X_test = X[train_index], X[val_index], X[test_index]
+                    
+            
+            
+                    y_train, y_val, y_test = y[train_index], y[val_index], y[test_index]
+                    y_pred_val, y_pred_test_curr = util.knn_classifier(X_train, y_train, X_val, X_test, 4)
+                    test_acc_curr = accuracy_score(y_test, y_pred_test_curr)
+                    percentages.append(test_acc_curr)
 
-        
-        test_index , val_index = np.array_split(test_val_index, 2)
-        X_train, X_val, X_test = X[train_index], X[val_index], X[test_index]
-        
+    maximum = max(percentages)
+    minimum = min(percentages)
+    index = percentages.index(maximum)
+    print("Hoogste percentage:", maximum, 'met Kleur factor = ', productC[index], ', Symmetrie factor = ', productS[index], 'en Border Factor = ', productB[index] )
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.pyplot as plt
 
 
-        y_train, y_val, y_test = y[train_index], y[val_index], y[test_index]
-        y_pred_val, y_pred_test_curr = util.knn_classifier(X_train, y_train, X_val, X_test, 4)
-        print(y_pred_val)
-        test_acc_curr = accuracy_score(y_test, y_pred_test_curr)
-        print(titel, 'has accuracy', test_acc_curr)
-    kleuren = []
 
-    for i in y:
-        if i == "True":
-            kleuren.append('r')
-        elif i == 'False':
-            kleuren.append('b')
-    
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    plt.title(titel)
-    ax.scatter(kleur, border, symmetrie, c=kleuren, marker='o')
+    
+    
+    
+    
+    
+
+    
+    ax.set_xlabel('Kleurfactor')
+    ax.set_ylabel('Borderfactor')
+    ax.set_zlabel('Symmetriefactor')
+
+    
+    img = ax.scatter(productC, productB,productS, c=percentages, vmin= minimum, vmax = maximum,  cmap=plt.hot())
+    
+    
+    fig.colorbar(img)
+    plt.show()        
+#         kleuren = []
+        
+#         for z in y:
+#             if z == "True":
+#                 kleuren.append('r')
+#             elif z == 'False':
+#                 kleuren.append('b')
+        
+#     gemiddelde = totaal/1000
+#     print(titel, 'has accuracy', accuracy) 
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111, projection='3d')
+#     ax.set_xlabel('Asymmetry')
+#     ax.set_ylabel('Border')
+#     ax.set_zlabel('Color')
+#     plt.title(titel)
+#     ax.scatter(kleur, border, symmetrie, c=kleuren, marker='o')
