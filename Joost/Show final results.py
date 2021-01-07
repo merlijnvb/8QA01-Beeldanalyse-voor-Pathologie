@@ -105,9 +105,9 @@ for i in distributions:
     methode = i[0]
 
     X = i[1]
-    X[:,0] = X[:,0]*1.8
-    X[:,1] = X[:,1]*2.3
-    X[:,2] = X[:,2]*3.8
+    X[:,0] = X[:,0]*1.6
+    X[:,1] = X[:,1]*2.0
+    X[:,2] = X[:,2]*2.0
     symmetrie = X[:, 0]
     kleur = X[:, 2]
     border = X[:, 1]
@@ -128,7 +128,7 @@ for i in distributions:
         y_pred_val, y_pred_test_curr = util.knn_classifier(X_train, y_train, X_val, X_test, 4)
         test_acc_curr = accuracy_score(y_test, y_pred_test_curr)
 
-
+    print(test_acc_curr)
 
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
