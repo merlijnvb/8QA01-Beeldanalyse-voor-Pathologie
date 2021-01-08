@@ -13,7 +13,8 @@ def read_files():
     
     control_group = []
     value_data = []
-       
+    
+    #PICK THE DATA FROM THE RESULTS FILE.
     for lines in results_read[1:]:
         lines = lines.rstrip()
         lines = tuple(lines.split(","))
@@ -29,9 +30,9 @@ def orginise_values(value_data):
     list_colour_scores = []
     list_border_score = []
     list_symmetry_score = []
-        
+    
+    #FORMAT THE DATA AND MAKE SCORES.
     for tupl in value_data:
-            
         border = float(tupl[2]) 
         area = float(tupl[1])
         symmetry_vertical = float(tupl[4])
@@ -70,6 +71,7 @@ def normalise_data(data_list):
     list_border = []
     list_colour = []
     
+    #CONVERT NUMPY LIST TO LISTS PER FEATURE
     for i in range(len(X)):
         list_symmetry.append(symmetry[i])
         list_border.append(border[i])
