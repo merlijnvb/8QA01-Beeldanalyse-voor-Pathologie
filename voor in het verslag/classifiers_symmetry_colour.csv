@@ -1,0 +1,8 @@
+Types of classification:,Mean training:,Mean test:
+Logistic regression,87.40%,86.40%
+Decision Tree,97.24%,90.92%
+Nearest Neighbor,94.24%,90.92%
+Linear Discriminant Analysis,92.53%,91.64%
+Gaussian Naive Bayes,93.84%,93.76%
+Support Vector Machine,93.87%,91.44%
+Nearest Centroid,91.71%,91.20%
