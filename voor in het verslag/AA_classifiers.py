@@ -11,6 +11,9 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.neighbors import NearestCentroid
 
+"""
+    READ THE RESULTS FILE AND SAVE VALUES IN LISTS.
+"""
 def read_files():
     results = open("results.csv")
     results_read = results.readlines()
@@ -27,6 +30,9 @@ def read_files():
     
     return value_data, control_groups
 
+"""
+    ORGANISE THE VALUES FURTHER AND MAKE SCORES.
+"""
 def extract_info(value_data, control_groups):
     
     list_id = []
@@ -49,8 +55,11 @@ def extract_info(value_data, control_groups):
 
     return df
 
+"""
+    GET ACCURACY PER CLASSIFIER WHERE 40% OF THE DATA IS USED AS TRAINING DATA AND 60% OF THE DATA IS USED FOR TESTING THE TRAINED CLASSIFIER.
+"""
 def print_accuracy(test_features,control_group,folds,classifiers):
-    x_train, x_test, y_train, y_test = train_test_split(test_features, control_group,test_size=0.25, random_state=folds)
+    x_train, x_test, y_train, y_test = train_test_split(test_features, control_group,test_size=0.40, random_state=folds)
      
     scaler = MinMaxScaler()
     x_train = scaler.fit_transform(x_train)
@@ -71,6 +80,7 @@ def print_accuracy(test_features,control_group,folds,classifiers):
     svm.fit(x_train, y_train)
     cent.fit(x_train, y_train)
     
+    """GET ACCURACY SCORE"""
     def get_accuracy(x,y):
         a = logreg.score(x, y)
         b = clf2.score(x, y)
@@ -97,6 +107,9 @@ def print_accuracy(test_features,control_group,folds,classifiers):
     
     return (training_sets,test_sets)
 
+"""
+    DEFINE THE CLASSIFIER SCORES IN A MEAM TABLE.
+"""
 def define_score():    
     value_data, control_groups = read_files()
     df = extract_info(value_data,control_groups)
@@ -110,12 +123,14 @@ def define_score():
     print(test_features)
         
     iteration = []
-
+    
+    #MAKE AS MANY FOLDS AS THERE IS DATASETS. 
     for folds in tqdm(range(len(df))):
         iteration.append(print_accuracy(test_features,control_groups,folds,classifiers))
         
     data = []
     
+    #GET THE MEAN TRAINING AND TESTING RESULTS PER CLASSIEFIER.
     for mode in range(2):  
         for types in range(len(classifiers)):
             value = 0
@@ -129,6 +144,7 @@ def define_score():
     mean_train = []
     mean_test = []
     
+    #UPDATE THE MEAN RESULTS TO PERCENTAGES.
     for train in data[:7]:
         train = "{:0.2%}".format(train)
         mean_train.append(train)
@@ -137,10 +153,12 @@ def define_score():
         test = "{:0.2%}".format(test)
         mean_test.append(test)
     
+    #POST THE PERCENTAGES FROM THE MEAN RESULTS IN A TABLE.
     mean_table = pd.DataFrame({"Types of classification:":classifiers,
                         "Mean training:":mean_train,
                         "Mean test:":mean_test})
     
+    #SAVE THE TABLE
     mean_table = mean_table.to_csv("classifiers.csv",index=False,sep=",")
 
 define_score()
