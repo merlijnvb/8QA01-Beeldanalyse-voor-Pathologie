@@ -3,6 +3,9 @@ from sklearn.preprocessing import PowerTransformer
 import math
 import pandas as pd
 
+"""
+    READ THE RESULTS FILE AND SAVE VALUES IN LISTS
+"""
 def read_files():
     results = open("results.csv")
     results_read = results.readlines()
@@ -19,6 +22,9 @@ def read_files():
     
     return value_data, control_group
 
+"""
+    ORGANISE THE VALUES FURTHER AND MAKE SCORES.
+"""
 def orginise_values(value_data):    
     list_colour_scores = []
     list_border_score = []
@@ -47,6 +53,9 @@ def orginise_values(value_data):
     
     return df
 
+"""
+    NORMALISE THE SCORES WITH THE BOX-COX TRANSFORM FUNCTION. ==> ALL VALUES WILL BE IN THE RANGE [-6,6] EXCEPT THE COLOUR RANGE, THIS WILL BE [-3,3].
+"""
 def normalise_data(data_list): 
     X = PowerTransformer(method='box-cox').fit_transform(data_list)
     X[:,0] = X[:,0]*2.0
@@ -68,8 +77,11 @@ def normalise_data(data_list):
 
     return list_symmetry, list_border, list_colour
 
+"""
+    MAKE BOXPLOTS FROM THE NORMALISED SCORES
+"""
 def get_plots():
-    value_data, control_group = read_files()
+    value_data, control_group = read_files() 
     
     symmetry, border, colour = normalise_data(orginise_values(value_data))
     
@@ -92,13 +104,14 @@ def get_plots():
             false_list_symmetry_score.append(symmetry[j])
             false_list_colour_cluster.append(colour[j])
     
+    """PLOT THE LISTS"""
     def print_plots(true,false, name):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax.boxplot([true,false])
             ax.set_xticklabels( ['melanoma','non-melanoma'] )
             plt.title(name)
-            plt.savefig("{} group 6".format(name))
+            plt.savefig(name)
     
     for lists in [(true_list_border_score,false_list_border_score,"Border Score"),(true_list_symmetry_score,false_list_symmetry_score,"Asymmetry Score"),(true_list_colour_cluster,false_list_colour_cluster,"Color Score")]:
         print_plots(lists[0],lists[1],lists[2])
