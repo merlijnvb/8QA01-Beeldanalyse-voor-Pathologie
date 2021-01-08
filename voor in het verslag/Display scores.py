@@ -1,18 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jan  6 16:35:58 2021
-
-@author: 20203167
-"""
-
-
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Dec 29 13:03:20 2020
-
-@author: 20203167
-"""
-
 #Dit bestand laat de Powertransformation(box-cox) zien. 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -23,6 +8,7 @@ import Groep_05_functions as util
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.metrics import accuracy_score
 from mpl_toolkits.mplot3d import Axes3D
+
 def read_files():
     csv = open("class2020_group05_labels.csv")
     csv_read = csv.readlines()
@@ -47,14 +33,11 @@ def read_files():
         
     return value_data, control_group
 
-
-
 value_data, control_group = read_files()
 
 list_colour_scores = []
 list_border_score = []
 list_symmetry_score = []
-
     
 for tupl in value_data:
         
@@ -65,8 +48,6 @@ for tupl in value_data:
     colour_score = tupl[5]
     colour_score = colour_score.replace(",", ".")
     colour_score = ((float(colour_score))) 
-    
-
     
     border_score = (border**2) / (area*math.pi*4) 
     symmetry_score = (symmetry_vertical + symmetry_horizontal) / area 
@@ -89,9 +70,6 @@ distributions = [
     ('Data after power transformation (Box-Cox)',
      PowerTransformer(method='box-cox').fit_transform(X))
 ]
-
-
-
 
 for i in distributions:
 
