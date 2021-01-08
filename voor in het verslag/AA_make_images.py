@@ -1,146 +1,111 @@
-import math
-import pandas as pd
-from tqdm import tqdm
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
-from sklearn.neighbors import NearestCentroid
+import cv2
+import numpy as np
+import os
 
-def read_files():
-    results = open("results.csv")
-    results_read = results.readlines()
-    results.close()
+"""READ IMAGES AND CONVERT THEM"""
+def img_conversion(mask_file,lesion_file):
+    mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
+ 
+    lesion = cv2.imread(lesion_file)
+    lesion = cv2.bitwise_and(lesion, lesion, mask=mask)
     
-    control_groups = []
-    value_data = []
-       
-    for lines in results_read[1:]:
-        lines = lines.rstrip()
-        lines = tuple(lines.split(","))
-        value_data.append(lines[:-1])
-        control_groups.append(lines[-1])
+    #REMOVE OLD IMAGES AND REPLACE THEM WITH NEW ONES.
+    os.remove("original_lesion.png")
+    cv2.imwrite("original_lesion.png", lesion)
     
-    return value_data, control_groups
+    height, width = mask.shape[:2]
+    centre = (width // 2, height // 2)
+    
+    thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
+    contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]
+    
+    angle = cv2.fitEllipse(contours[0])[2] - 90
+    moment = cv2.getRotationMatrix2D(centre, angle, 1.0)
+    
+    mask = cv2.warpAffine(mask, moment, (width, height))
+    lesion = cv2.warpAffine(lesion, moment, (width, height))
 
-def extract_info(value_data, control_groups):
+    os.remove("rotated_mask.png")
+    os.remove("rotated_lesion.png")
+    cv2.imwrite("rotated_mask.png", mask)
+    cv2.imwrite("rotated_lesion.png", lesion)
+
+    lesion = cv2.cvtColor(lesion, cv2.COLOR_BGR2RGB)
     
-    list_id = []
-    list_data = []
+    return (mask,lesion)
+
+"""EVALUATE LESIONS"""
+def border_evaluation(mask):       
+    border_blanc = np.zeros((mask.shape[0], mask.shape[1], 3), np.uint8)
     
-    for tupl in value_data:
-        ID = tupl[0]
-        border = int(tupl[1])
-        area = int(tupl[2])
-        symmetry_overlapse = int(tupl[3]) + int(tupl[4])
-        colour_cluster_score = float(tupl[5])
-                
-        border_score = (border**2) / (area*math.pi*4)
-        symmetry_score = symmetry_overlapse / area
+    thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)[1]    
+    contours = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]
         
-        list_id.append(ID)
-        list_data.append((symmetry_score,border_score,colour_cluster_score))
+    border = cv2.drawContours(border_blanc,contours, 0, (255, 255, 255), 3)
     
-    df = pd.DataFrame(list_data,index=list_id,columns=["Asymmetry score","Border score","Cluster score"])
-
-    return df
-
-def print_accuracy(test_features,control_group,folds,classifiers):
-    x_train, x_test, y_train, y_test = train_test_split(test_features, control_group,test_size=0.25, random_state=folds)
-     
-    scaler = MinMaxScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_test = scaler.transform(x_test)
-
-    logreg = LogisticRegression()
-    clf2 = DecisionTreeClassifier(max_depth=3).fit(x_train, y_train)
-    knn = KNeighborsClassifier()
-    gnb = GaussianNB()
-    lda = LinearDiscriminantAnalysis()
-    svm = SVC()
-    cent = NearestCentroid()
+    #REMOVE OLD IMAGES AND REPLACE THEM WITH NEW ONES.
+    os.remove("border.png")
+    cv2.imwrite("border.png", border)
     
-    logreg.fit(x_train, y_train)
-    knn.fit(x_train, y_train)   
-    gnb.fit(x_train, y_train)
-    lda.fit(x_train, y_train)    
-    svm.fit(x_train, y_train)
-    cent.fit(x_train, y_train)
+def symmetry_evaluation(mask):
+    height, width = mask.shape[:2]
+    moment = cv2.moments(mask)
     
-    def get_accuracy(x,y):
-        a = logreg.score(x, y)
-        b = clf2.score(x, y)
-        c = knn.score(x, y)
-        d = gnb.score(x, y)
-        e = lda.score(x, y)
-        f = svm.score(x, y)
-        g = cent.score(x, y)
+    centre_blob_x = int(moment["m10"] / moment["m00"])
+    centre_blob_y = int(moment["m01"] / moment["m00"])
+
+    superior = mask[0:centre_blob_y, 0:width]
+    inferior = mask[centre_blob_y:height, 0:width]
+    inferior = cv2.flip(inferior, 0)
+    
+    left = mask[0:height, 0:centre_blob_x]
+    left = cv2.flip(left, 1)
+    right = mask[0:height, centre_blob_x:width]
+    
+    if superior.shape[0] > inferior.shape[0]:
+        inferior = cv2.copyMakeBorder(inferior, superior.shape[0]-inferior.shape[0], None, None, None, 0, None, None)                     
+        horizontal_result = superior - inferior
         
-        return (a,b,c,d,e,f,g)
-
-    training_sets = []
-    test_sets = []
+    if superior.shape[0] < inferior.shape[0]:
+        superior = cv2.copyMakeBorder(superior, inferior.shape[0]-superior.shape[0], None, None, None, 0, None, None)  
+        horizontal_result = inferior - superior
     
-    for i in range(len(classifiers)):
-        train = float(get_accuracy(x_train,y_train)[i])
-        test = float(get_accuracy(x_test, y_test)[i])
+    if left.shape[1] > right.shape[1]:
+        right = cv2.copyMakeBorder(right, None, None, None, left.shape[1]-right.shape[1], 0, None, None)
+        vertical_result = left - right
         
-        training_sets.append(train)
-        test_sets.append(test)
-       
-    training_sets = tuple(training_sets)
-    test_sets = tuple(test_sets)
-    
-    return (training_sets,test_sets)
-
-def define_score():    
-    value_data, control_groups = read_files()
-    df = extract_info(value_data,control_groups)
-    
-    classifiers = ["Logistic regression","Decision Tree","Nearest Neighbor","Linear Discriminant Analysis",
-                   "Gaussian Naive Bayes","Support Vector Machine","Nearest Centroid"]
-    
-    features = ["Asymmetry score","Border score","Cluster score"]
-    test_features = df[features]
-    
-    print(test_features)
+    if left.shape[1] < right.shape[1]:
+        left = cv2.copyMakeBorder(left, None, None, None, right.shape[1]-left.shape[1], 0, None, None)
+        vertical_result = right - left
         
-    iteration = []
+    if left.shape[1] == right.shape[1]:  
+        vertical_result = right - left
+    
+    if superior.shape[0] == inferior.shape[0]:
+        horizontal_result = superior - inferior
+    
+    #REMOVE OLD IMAGES AND REPLACE THEM WITH NEW ONES.
+    os.remove("inferior_side.png")
+    os.remove("superior_side.png")
+    os.remove("left_side.png")
+    os.remove("right_side.png")
+    os.remove("horizontal_overlapse.png")
+    os.remove("vertical_overlapse.png")
+    cv2.imwrite("inferior_side.png", inferior)
+    cv2.imwrite("superior_side.png", superior)
+    cv2.imwrite("left_side.png", left)
+    cv2.imwrite("right_side.png", right)
+    cv2.imwrite("horizontal_overlapse.png", horizontal_result)
+    cv2.imwrite("vertical_overlapse.png", vertical_result)
 
-    for folds in tqdm(range(len(df))):
-        iteration.append(print_accuracy(test_features,control_groups,folds,classifiers))
-        
-    data = []
+"""CALL EVERY FUNCTION 1 TIME TO SHOW RESULTS"""
+def return_results(mask_file, lesion_file):
+    mask, lesion = img_conversion(mask_file, lesion_file)
     
-    for mode in range(2):  
-        for types in range(len(classifiers)):
-            value = 0
-            for dataset in iteration:
-                value += dataset[mode][types]
-                
-            value = value / len(iteration)
-            
-            data.append(value)
+    symmetry_evaluation(mask)
+    border_evaluation(mask)
     
-    mean_train = []
-    mean_test = []
-    
-    for train in data[:7]:
-        train = "{:0.2%}".format(train)
-        mean_train.append(train)
-        
-    for test in data[7:]:
-        test = "{:0.2%}".format(test)
-        mean_test.append(test)
-    
-    mean_table = pd.DataFrame({"Types of classification:":classifiers,
-                        "Mean training:":mean_train,
-                        "Mean test:":mean_test})
-    
-    mean_table = mean_table.to_csv("classifiers.csv",index=False,sep=",")
-
-define_score()
+#INPUT FILE NAMES FOR WICH YOU WANT TO GET IMAGES AS REULTS
+mask_file = "ISIC-TrainValTest\masks\ISIC_0013319_segmentation.png"
+lesion_file = "ISIC-TrainValTest\lesions\ISIC_0013319.jpg"
+return_results(mask_file, lesion_file)
