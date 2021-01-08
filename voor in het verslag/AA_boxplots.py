@@ -81,8 +81,10 @@ def normalise_data(data_list):
     MAKE BOXPLOTS FROM THE NORMALISED SCORES
 """
 def get_plots():
+    #GATHER SCORES
     value_data, control_group = read_files() 
     
+    #NORMALISE THE SCORES
     symmetry, border, colour = normalise_data(orginise_values(value_data))
     
     true_list_border_score = []
@@ -93,6 +95,7 @@ def get_plots():
     false_list_symmetry_score = []
     false_list_colour_cluster = []
     
+    #SPLITS THE SCORES IN A NON-MELANOMA AND AN MELANOMA LIST
     for j in range(len(control_group)):
         if control_group[j] == "True":
             true_list_border_score.append(border[j])
@@ -104,7 +107,7 @@ def get_plots():
             false_list_symmetry_score.append(symmetry[j])
             false_list_colour_cluster.append(colour[j])
     
-    """PLOT THE LISTS"""
+    """PLOTS THE LISTS"""
     def print_plots(true,false, name):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
@@ -113,6 +116,7 @@ def get_plots():
             plt.title(name)
             plt.savefig(name)
     
+    #GET PLOTS
     for lists in [(true_list_border_score,false_list_border_score,"Border Score"),(true_list_symmetry_score,false_list_symmetry_score,"Asymmetry Score"),(true_list_colour_cluster,false_list_colour_cluster,"Color Score")]:
         print_plots(lists[0],lists[1],lists[2])
 
