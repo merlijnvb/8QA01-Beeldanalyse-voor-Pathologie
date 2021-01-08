@@ -10,7 +10,7 @@ from scipy.spatial.distance import cdist
     GET ALL FILENAMES WITH LABELS
 """
 def read_files():
-    csv = open("labels_6.csv")
+    csv = open("labels.csv")
     csv_read = csv.readlines()
     csv.close()
     
@@ -139,7 +139,7 @@ def symmetry_evaluation(mask):
 """
 def return_results():
     #OPEN DOCUMENT TO INSERT RESULTS
-    document = open("results_group6.csv", "w")
+    document = open("results.csv", "w")
     data = read_files()
     
     for fileset in tqdm(data):
