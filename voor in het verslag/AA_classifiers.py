@@ -21,7 +21,8 @@ def read_files():
     
     control_groups = []
     value_data = []
-       
+    
+    #PICK THE DATA FROM THE RESULTS FILE.
     for lines in results_read[1:]:
         lines = lines.rstrip()
         lines = tuple(lines.split(","))
@@ -38,6 +39,7 @@ def extract_info(value_data, control_groups):
     list_id = []
     list_data = []
     
+    #FORMAT THE DATA AND MAKE SCORES.
     for tupl in value_data:
         ID = tupl[0]
         border = int(tupl[1])
@@ -59,12 +61,15 @@ def extract_info(value_data, control_groups):
     GET ACCURACY PER CLASSIFIER WHERE 40% OF THE DATA IS USED AS TRAINING DATA AND 60% OF THE DATA IS USED FOR TESTING THE TRAINED CLASSIFIER.
 """
 def print_accuracy(test_features,control_group,folds,classifiers):
+    #SPLITS SCORESETS IN TRAINING AND DATA VARIABLES.
     x_train, x_test, y_train, y_test = train_test_split(test_features, control_group,test_size=0.40, random_state=folds)
      
+    #FIT SCORES
     scaler = MinMaxScaler()
     x_train = scaler.fit_transform(x_train)
     x_test = scaler.transform(x_test)
-
+    
+    #NAME THE CLASSIFIERS.
     logreg = LogisticRegression()
     clf2 = DecisionTreeClassifier(max_depth=3).fit(x_train, y_train)
     knn = KNeighborsClassifier()
@@ -73,6 +78,7 @@ def print_accuracy(test_features,control_group,folds,classifiers):
     svm = SVC()
     cent = NearestCentroid()
     
+    #FIT SCORES FOR CLASSIFIERS.
     logreg.fit(x_train, y_train)
     knn.fit(x_train, y_train)   
     gnb.fit(x_train, y_train)
